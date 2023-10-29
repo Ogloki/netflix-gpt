@@ -1,7 +1,7 @@
-import "./App.css";
+import Body from "./components/Body";
 
-function App() {
-  return <div className="text-green-800 text-3xl">'hi mom'</div>;
-}
+const App = () => {
+  return <Body></Body>;
+};
 
 export default App;
