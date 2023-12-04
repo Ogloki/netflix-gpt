@@ -1,57 +1,129 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Header from "./Header";
+import { checkValidData } from "../utils/validate";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { auth } from "../utils/firebase";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [Signin, setSignin] = useState(true);
-  const handelSignin = () => {
-    setSignin(!Signin);
+  const [isSignInForm, setIsSignInForm] = useState(true);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const navigate = useNavigate();
+
+  const name = useRef(null);
+  const email = useRef(null);
+  const password = useRef(null);
+
+  const handleButtonClick = () => {
+    const message = checkValidData(email.current.value, password.current.value);
+    setErrorMessage(message);
+    if (message) return;
+
+    if (!isSignInForm) {
+      // Sign Up Logic
+      createUserWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          const user = userCredential.user;
+          updateProfile(user, {
+            displayName: name.current.value,
+            photoURL:
+              "https://occ-0-6247-2164.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABdpkabKqQAxyWzo6QW_ZnPz1IZLqlmNfK-t4L1VIeV1DY00JhLo_LMVFp936keDxj-V5UELAVJrU--iUUY2MaDxQSSO-0qw.png?r=e6e",
+          })
+            .then(() => {
+              navigate("/browse");
+            })
+            .catch((error) => {
+              setErrorMessage(error.message);
+            });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + "-" + errorMessage);
+        });
+    } else {
+      // Sign In Logic
+      signInWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          // Signed in
+          const user = userCredential.user;
+          navigate("/browse");
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + "-" + errorMessage);
+        });
+    }
   };
 
-  const [Email, setEmail] = useState(null);
-  console.log(Email);
-
+  const toggleSignInForm = () => {
+    setIsSignInForm(!isSignInForm);
+  };
   return (
     <div>
       <Header />
-      <form className="bg-black absolute w-3/12 my-36 mx-auto right-0 left-0 text-white rounded">
-        <h1 className="text-3xl pt-12 pb-4 px-12">
-          {Signin ? "Sign In" : "Sign Up"}
+      <div className="absolute">
+        <img
+          className="opacity-5"
+          src="https://assets.nflxext.com/ffe/siteui/vlv3/fc164b4b-f085-44ee-bb7f-ec7df8539eff/d23a1608-7d90-4da1-93d6-bae2fe60a69b/IN-en-20230814-popsignuptwoweeks-perspective_alpha_website_large.jpg"
+          alt="logo"
+        />
+      </div>
+      <form
+        onSubmit={(e) => e.preventDefault()}
+        className="w-3/12 absolute p-12 bg-black my-36 mx-auto right-0 left-0 text-white rounded-lg bg-opacity-80"
+      >
+        <h1 className="font-bold text-3xl py-4">
+          {isSignInForm ? "Sign In" : "Sign Up"}
         </h1>
-        <input
-          type="text"
-          placeholder="Enter your Email"
-          className="p-4 my-2 w-3/4 mx-12 rounded bg-gray-700"
-          onChange={(e) => {
-            setEmail(e.target.value);
-          }}
-        ></input>
 
-        {!Signin && (
+        {!isSignInForm && (
           <input
+            ref={name}
             type="text"
-            placeholder="Enter your Username"
-            className="p-4 my-2 w-3/4 mx-12 rounded bg-gray-700"
-          ></input>
+            placeholder="Full Name"
+            className="p-4 my-4 w-full bg-gray-700"
+          />
         )}
-
         <input
+          ref={email}
+          type="text"
+          placeholder="Email Address"
+          className="p-4 my-4 w-full bg-gray-700"
+        />
+        <input
+          ref={password}
           type="password"
           placeholder="Password"
-          className="p-4 my-2 w-3/4 mx-12 rounded bg-gray-700"
-        ></input>
-        <button className="p-4 my-4 mb-10 bg-red-600 w-3/4 mx-12 rounded">
-          {Signin ? "Sign In" : "Sign Up"}
+          className="p-4 my-4 w-full bg-gray-700"
+        />
+        <p className="text-red-500 font-bold text-lg py-2">{errorMessage}</p>
+        <button
+          className="p-4 my-6 bg-red-700 w-full rounded-lg"
+          onClick={handleButtonClick}
+        >
+          {isSignInForm ? "Sign In" : "Sign Up"}
         </button>
-        <p className="p-4 w-3/4 mx-12 mb-4">
-          <span className="cursor-pointer" onClick={handelSignin}>
-            {Signin
-              ? "New to Netflix? Sign Up Now"
-              : "Already a Member Sign In"}
-          </span>
+        <p className="py-4 cursor-pointer" onClick={toggleSignInForm}>
+          {isSignInForm
+            ? "New to Netflix? Sign Up Now"
+            : "Already registered? Sign In Now."}
         </p>
       </form>
     </div>
   );
 };
-
 export default Login;
